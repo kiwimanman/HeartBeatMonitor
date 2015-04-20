@@ -1,5 +1,6 @@
 package works.com.hellovision2;
 
+import android.graphics.Color;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,6 +11,8 @@ import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 
+import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYPlot;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -33,6 +36,8 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     int cannyThreshold=50;
 
     XYPlot plot;
+    SimpleXYSeries redSeries;
+    SimpleXYSeries blueSeries;
 
     public class Reading extends Pair<Scalar, Date> {
         public Reading(Scalar first) {
@@ -70,6 +75,12 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
 
         plot = (XYPlot)findViewById(R.id.XYPlot);
         rawReadings = new ArrayList<>();
+
+        redSeries = new SimpleXYSeries("Red");
+        blueSeries = new SimpleXYSeries("Blue");
+
+        plot.addSeries(redSeries, new LineAndPointFormatter(Color.rgb(200, 0, 0), Color.rgb(250, 0, 0), null, null));
+        plot.addSeries(blueSeries, new LineAndPointFormatter(Color.rgb(0, 0, 200), Color.rgb(0, 0, 250), null, null));
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
@@ -137,6 +148,11 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
         Scalar means = Core.mean(currentFrame);
 
         recordMeans(means);
+
+        Reading lastReading = rawReadings.get(rawReadings.size() - 1);
+        redSeries.addLast(lastReading.second.getTime(), lastReading.first.val[0]);
+        blueSeries.addLast(lastReading.second.getTime(), lastReading.first.val[1]);
+        plot.redraw();
 
         Imgproc.cvtColor(currentFrame, currentFrame, Imgproc.COLOR_RGBA2GRAY);
         Imgproc.Canny(currentFrame,currentFrame,cannyThreshold/3,cannyThreshold );
