@@ -3,11 +3,14 @@ package works.com.hellovision2;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+
+import com.androidplot.xy.XYPlot;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -15,7 +18,11 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
+import java.util.Date;
 
 
 public class VisionActivity extends ActionBarActivity implements CameraBridgeViewBase.CvCameraViewListener2{
@@ -24,6 +31,16 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     CameraBridgeViewBase mOpenCvCameraView;
     float lastTouchY=0;
     int cannyThreshold=50;
+
+    XYPlot plot;
+
+    public class Reading extends Pair<Scalar, Date> {
+        public Reading(Scalar first) {
+            super(first, new Date());
+        }
+    }
+
+    ArrayList<Reading> rawReadings;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -50,10 +67,13 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
         setContentView(R.layout.activity_vision);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        plot = (XYPlot)findViewById(R.id.XYPlot);
+        rawReadings = new ArrayList<>();
+
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
-
     }
 
 
@@ -114,10 +134,11 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame = inputFrame.rgba();
-//        Core.mean(currentFrame); -> returns x,y,z,a
-        Mat gryFrame = new Mat();
-        Imgproc.cvtColor(currentFrame, currentFrame, Imgproc.COLOR_RGBA2GRAY);
+        Scalar means = Core.mean(currentFrame);
 
+        recordMeans(means);
+
+        Imgproc.cvtColor(currentFrame, currentFrame, Imgproc.COLOR_RGBA2GRAY);
         Imgproc.Canny(currentFrame,currentFrame,cannyThreshold/3,cannyThreshold );
         return currentFrame;
     }
@@ -142,5 +163,8 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
         return true;
     }
 
+    private void recordMeans(Scalar means) {
+         rawReadings.add(new Reading(means));
+    }
 
 }

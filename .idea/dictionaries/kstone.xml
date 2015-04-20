@@ -2,6 +2,7 @@
   <dictionary name="kstone">
     <words>
       <w>hellovision</w>
+      <w>imgproc</w>
     </words>
   </dictionary>
 </component>
