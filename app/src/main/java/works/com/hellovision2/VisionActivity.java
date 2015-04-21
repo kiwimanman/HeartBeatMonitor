@@ -4,12 +4,14 @@ import android.graphics.Color;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
@@ -22,10 +24,6 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-
-import java.util.ArrayList;
-import java.util.Date;
 
 
 public class VisionActivity extends ActionBarActivity implements CameraBridgeViewBase.CvCameraViewListener2{
@@ -34,18 +32,16 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     CameraBridgeViewBase mOpenCvCameraView;
     float lastTouchY=0;
     int cannyThreshold=50;
+    boolean recording = false;
 
     XYPlot plot;
     SimpleXYSeries redSeries;
-    SimpleXYSeries blueSeries;
+    SimpleXYSeries bpmSeries;
+    Button recordButton;
+    TextView heartRateDisplay;
+    Mat firstFrame;
 
-    public class Reading extends Pair<Scalar, Date> {
-        public Reading(Scalar first) {
-            super(first, new Date());
-        }
-    }
-
-    ArrayList<Reading> rawReadings;
+    ReadingList rawReadings;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -72,15 +68,17 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
         setContentView(R.layout.activity_vision);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        recordButton = (Button)findViewById(R.id.recordButton);
+        heartRateDisplay = (TextView)findViewById(R.id.heartRateDisplay);
 
         plot = (XYPlot)findViewById(R.id.XYPlot);
-        rawReadings = new ArrayList<>();
+        rawReadings = new ReadingList();
 
         redSeries = new SimpleXYSeries("Red");
-        blueSeries = new SimpleXYSeries("Blue");
+        bpmSeries = new SimpleXYSeries("BPM");
 
         plot.addSeries(redSeries, new LineAndPointFormatter(Color.rgb(200, 0, 0), Color.rgb(250, 0, 0), null, null));
-        plot.addSeries(blueSeries, new LineAndPointFormatter(Color.rgb(0, 0, 200), Color.rgb(0, 0, 250), null, null));
+        plot.addSeries(bpmSeries, new LineAndPointFormatter(Color.rgb(200, 200, 200), Color.rgb(250, 250, 250), null, null));
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
@@ -141,22 +139,51 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     public void onCameraViewStopped() {
 
     }
-//
+
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame = inputFrame.rgba();
         Scalar means = Core.mean(currentFrame);
 
-        recordMeans(means);
+        if (recording) {
+            rawReadings.recordMeans(means);
 
-        Reading lastReading = rawReadings.get(rawReadings.size() - 1);
-        redSeries.addLast(lastReading.second.getTime(), lastReading.first.val[0]);
-        blueSeries.addLast(lastReading.second.getTime(), lastReading.first.val[1]);
-        plot.redraw();
+            if (rawReadings.newWindowAvailable()) {
+                BPM bpm = rawReadings.processSignal();
+                bpmSeries.addLast(bpm.timeStamp(), bpm.bpm());
+                rawReadings.advanceWindow();
+            }
 
-        Imgproc.cvtColor(currentFrame, currentFrame, Imgproc.COLOR_RGBA2GRAY);
-        Imgproc.Canny(currentFrame,currentFrame,cannyThreshold/3,cannyThreshold );
-        return currentFrame;
+            Reading lastReading = rawReadings.last();
+            redSeries.addLast(lastReading.timeStamp(), lastReading.value());
+            plot.redraw();
+        }
+
+        // Heard this might fix a memory leak.
+        if (firstFrame == null) {
+            firstFrame = currentFrame;
+        } else {
+            currentFrame.release();
+        }
+
+        return firstFrame;
+    }
+
+    public void recordClicked(View view) {
+        recording = !recording;
+        if (recording) {
+            recordButton.setText("Stop");
+        } else {
+            recordButton.setText("Record");
+            rawReadings.clear();
+            while (redSeries.size() > 0) {
+                redSeries.removeFirst();
+            }
+            while (bpmSeries.size() > 0) {
+                bpmSeries.removeFirst();
+            }
+        }
+
     }
 
     @Override
@@ -178,9 +205,4 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
             lastTouchY = 0;
         return true;
     }
-
-    private void recordMeans(Scalar means) {
-         rawReadings.add(new Reading(means));
-    }
-
 }

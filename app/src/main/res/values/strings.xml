@@ -4,5 +4,7 @@
     <string name="app_name">HelloVision2</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="record">Record</string>
+    <string name="heartRateDisplay">Heart Rate: ??? bpm</string>
 
 </resources>
