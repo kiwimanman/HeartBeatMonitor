@@ -11,6 +11,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import com.androidplot.xy.LineAndPointFormatter;
@@ -39,10 +40,16 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     XYPlot plot;
     SimpleXYSeries redSeries;
     SimpleXYSeries bpmSeries;
+    LineAndPointFormatter redFormatter;
+    LineAndPointFormatter bpmFormatter;
+
     Button recordButton;
-    TextView heartRateDisplay;
     Mat firstFrame;
     Random random = new Random();
+    double runningBPMTotal = 0.0;
+    double avgBPM = 0.0;
+
+    RadioGroup radioGroup;
 
     ReadingList rawReadings;
 
@@ -72,7 +79,7 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         recordButton = (Button)findViewById(R.id.recordButton);
-        heartRateDisplay = (TextView)findViewById(R.id.heartRateDisplay);
+        radioGroup = (RadioGroup)findViewById(R.id.radioGroup);
 
         plot = (XYPlot)findViewById(R.id.XYPlot);
         rawReadings = new ReadingList();
@@ -80,8 +87,10 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
         redSeries = new SimpleXYSeries("Red");
         bpmSeries = new SimpleXYSeries("BPM");
 
-        plot.addSeries(redSeries, new LineAndPointFormatter(Color.rgb(200, 0, 0), Color.rgb(250, 0, 0), null, null));
-        plot.addSeries(bpmSeries, new LineAndPointFormatter(Color.rgb(200, 200, 200), Color.rgb(250, 250, 250), null, null));
+        redFormatter = new LineAndPointFormatter(Color.rgb(200, 0, 0), Color.rgb(250, 0, 0), null, null);
+        bpmFormatter = new LineAndPointFormatter(Color.rgb(200, 200, 200), Color.rgb(250, 250, 250), null, null);
+        plot.addSeries(redSeries, redFormatter);
+        plot.addSeries(bpmSeries, bpmFormatter);
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
@@ -150,28 +159,49 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
 
         if (recording) {
             rawReadings.recordMeans(means);
+            int checkedRadioButton = radioGroup.getCheckedRadioButtonId();
 
             if (rawReadings.newWindowAvailable()) {
-                Log.d(TAG, "Building window");
                 BPM bpm = rawReadings.processSignal();
-                plot.addSeries(
-                        rawReadings.getLastWindow().getAsSeries(),
-                        new LineAndPointFormatter(
-                                Color.rgb(random.nextInt(), random.nextInt(), random.nextInt()),
-                                Color.rgb(random.nextInt(), random.nextInt(), random.nextInt()),
-                                null,
-                                null
-                        )
-                );
-                // bpmSeries.addLast(bpm.timeStamp(), bpm.bpm());
-                Log.d(TAG, "Recorded BMP window");
-            } else {
-                Log.d(TAG, "Waiting for window");
+                runningBPMTotal += bpm.bpm();
+                if (checkedRadioButton != R.id.raw && checkedRadioButton != R.id.bpm && checkedRadioButton != R.id.off) {
+                    plot.addSeries(
+                            rawReadings.getLastWindow().getAsSeries(checkedRadioButton),
+                            new LineAndPointFormatter(
+                                    Color.rgb(random.nextInt(), random.nextInt(), random.nextInt()),
+                                    Color.rgb(random.nextInt(), random.nextInt(), random.nextInt()),
+                                    null,
+                                    null
+                            )
+                    );
+                }
+                if (checkedRadioButton == R.id.bpm) {
+                    bpmSeries.addLast(bpm.timeStamp(), bpm.bpm());
+                }
+                ReadingWindow lastWindow = rawReadings.getLastWindow();
+                if (lastWindow != null && lastWindow.getSampleRate() < 6.0) {
+                    recording = false;
+                }
             }
 
             Reading lastReading = rawReadings.last();
-            // redSeries.addLast(lastReading.timeStamp(), lastReading.value());
-            plot.redraw();
+            if (checkedRadioButton == R.id.raw) {
+                redSeries.addLast(lastReading.timeStamp(), lastReading.value());
+            }
+
+            if (checkedRadioButton != R.id.off)
+                plot.redraw();
+
+            if (rawReadings.numWindows > 0) {
+                avgBPM = runningBPMTotal / (double) rawReadings.numWindows;
+                final TextView heartRateDisplay = (TextView)findViewById(R.id.heartRateDisplay);
+                heartRateDisplay.post(new Runnable() {
+                                  public void run() {
+                                      TextView heartRateDisplay = (TextView)findViewById(R.id.heartRateDisplay);
+                                      heartRateDisplay.setText("Heart Rate: " + Math.floor(avgBPM) + " bpm");
+                                  }
+                              });
+            }
         }
 
         // Heard this might fix a memory leak.
@@ -184,10 +214,13 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
         return firstFrame;
     }
 
+
     public void recordClicked(View view) {
         recording = !recording;
         if (recording) {
             recordButton.setText("Stop");
+            TextView heartRateDisplay = (TextView)findViewById(R.id.heartRateDisplay);
+            heartRateDisplay.setText("Heart Rate: ??? bpm");
         } else {
             recordButton.setText("Record");
             rawReadings.clear();
@@ -198,6 +231,9 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
                 bpmSeries.removeFirst();
             }
             plot.clear();
+            plot.addSeries(redSeries, redFormatter);
+            plot.addSeries(bpmSeries, bpmFormatter);
+            runningBPMTotal = 0.0;
         }
 
     }

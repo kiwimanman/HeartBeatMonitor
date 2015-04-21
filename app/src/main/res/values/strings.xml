@@ -6,5 +6,11 @@
     <string name="action_settings">Settings</string>
     <string name="record">Record</string>
     <string name="heartRateDisplay">Heart Rate: ??? bpm</string>
+    <string name="raw">Raw</string>
+    <string name="derived">Windows after differentiation</string>
+    <string name="filtered">Windows after bandpass filter.</string>
+    <string name="bmp">Beats per minute</string>
+    <string name="thresholded">Windows after filter, demean, and threshold</string>
+    <string name="off">Off</string>
 
 </resources>

@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class ReadingList extends ArrayList<Reading> {
     private final static String TAG = "READING_LIST";
-    private final static int WINDOW_SIZE = 6500; //milliseconds
+    private final static int WINDOW_SIZE = 13000; //milliseconds
     private final static int RECALCULATE_INTERVAL = 1000; //milliseconds
 
     public ReadingList() {

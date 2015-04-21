@@ -64,5 +64,42 @@
             android:layout_height="wrap_content"
             android:text="@string/heartRateDisplay"
             android:id="@+id/heartRateDisplay" />
-    </LinearLayout>
+        <RadioGroup
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/radioGroup"
+            android:checkedButton="@+id/off" >
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/off"
+                android:text="@string/off" />
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/raw"
+                android:text="@string/raw" />
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/filtered"
+                android:text="@string/filtered" />
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/thresholded"
+                android:text="@string/thresholded" />
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/derived"
+                android:text="@string/derived" />
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/bpm"
+                android:text="@string/bmp" />
+    </RadioGroup>
+
+</LinearLayout>
 </LinearLayout>
