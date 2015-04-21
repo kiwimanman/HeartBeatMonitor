@@ -25,6 +25,8 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 
+import java.util.Random;
+
 
 public class VisionActivity extends ActionBarActivity implements CameraBridgeViewBase.CvCameraViewListener2{
 
@@ -40,6 +42,7 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
     Button recordButton;
     TextView heartRateDisplay;
     Mat firstFrame;
+    Random random = new Random();
 
     ReadingList rawReadings;
 
@@ -151,16 +154,23 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
             if (rawReadings.newWindowAvailable()) {
                 Log.d(TAG, "Building window");
                 BPM bpm = rawReadings.processSignal();
-                bpmSeries.addLast(bpm.timeStamp(), bpm.bpm());
+                plot.addSeries(
+                        rawReadings.getLastWindow().getAsSeries(),
+                        new LineAndPointFormatter(
+                                Color.rgb(random.nextInt(), random.nextInt(), random.nextInt()),
+                                Color.rgb(random.nextInt(), random.nextInt(), random.nextInt()),
+                                null,
+                                null
+                        )
+                );
+                // bpmSeries.addLast(bpm.timeStamp(), bpm.bpm());
                 Log.d(TAG, "Recorded BMP window");
-                rawReadings.advanceWindow();
-                Log.d(TAG, "Advancing window");
             } else {
                 Log.d(TAG, "Waiting for window");
             }
 
             Reading lastReading = rawReadings.last();
-            redSeries.addLast(lastReading.timeStamp(), lastReading.value());
+            // redSeries.addLast(lastReading.timeStamp(), lastReading.value());
             plot.redraw();
         }
 
@@ -187,6 +197,7 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
             while (bpmSeries.size() > 0) {
                 bpmSeries.removeFirst();
             }
+            plot.clear();
         }
 
     }

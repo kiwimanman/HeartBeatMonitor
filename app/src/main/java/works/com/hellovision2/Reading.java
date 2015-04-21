@@ -20,4 +20,9 @@ public class Reading extends Pair<Double, Date> {
     public Double value() {
         return first;
     }
+
+    @Override
+    public String toString() {
+        return "(" + first + ", " + timeStamp() + ")";
+    }
 }

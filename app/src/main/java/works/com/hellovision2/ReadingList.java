@@ -8,14 +8,14 @@ import java.util.ArrayList;
 
 public class ReadingList extends ArrayList<Reading> {
     private final static String TAG = "READING_LIST";
-    private final static int WINDOW_SIZE = 5000; //milliseconds
+    private final static int WINDOW_SIZE = 6500; //milliseconds
     private final static int RECALCULATE_INTERVAL = 1000; //milliseconds
 
     public ReadingList() {
         super();
     }
 
-    Long startLastWindow;
+    ReadingWindow lastWindow;
     int numWindows = 0;
 
 
@@ -23,18 +23,15 @@ public class ReadingList extends ArrayList<Reading> {
         if (isEmpty())
             return false;
 
-        if (startLastWindow == null)
-            startLastWindow = get(0).timeStamp();
-
         Reading lastReading = get(size() - 1);
 
-        if (numWindows == 0) {
-
-            double windowSpan = lastReading.timeStamp() - startLastWindow;
+        if (lastWindow == null) {
+            Reading firstReading = get(0);
+            double windowSpan = lastReading.timeStamp() - firstReading.timeStamp();
             // Log.d(TAG, "Window Span: " + windowSpan);
             return windowSpan >= WINDOW_SIZE;
         } else {
-            return lastReading.timeStamp() - startLastWindow >= WINDOW_SIZE;
+            return lastReading.timeStamp() - lastWindow.getStart() >= WINDOW_SIZE;
         }
     }
 
@@ -46,38 +43,41 @@ public class ReadingList extends ArrayList<Reading> {
 
     public BPM processSignal() {
         ReadingWindow window = nextWindow();
-        advanceWindow();
 
         return window.getBpm();
     }
 
     private ReadingWindow nextWindow() {
-        ReadingWindow window = new ReadingWindow();
-        long lastTimestamp = startLastWindow + WINDOW_SIZE;
+        long startTimestamp;
+        if (lastWindow == null)
+            startTimestamp = get(0).timeStamp();
+        else
+            startTimestamp = lastWindow.getStart() + RECALCULATE_INTERVAL;
 
-        Log.d(TAG, "Start Timestamp: " + startLastWindow);
+        long lastTimestamp = startTimestamp + WINDOW_SIZE;
+        lastWindow = new ReadingWindow();
+
+        Log.d(TAG, "Start Timestamp: " + startTimestamp);
         // Log.d(TAG, "End Timestamp: " + lastTimestamp);
 
         for (Reading r : this) {
             long timestampR = r.timeStamp();
             // Log.d(TAG, "Query Timestamp: " + timestampR);
-            if (timestampR >= startLastWindow && timestampR < lastTimestamp) {
+            if (timestampR >= startTimestamp && timestampR < lastTimestamp) {
                 // Log.d(TAG, "Added: " + timestampR);
-                window.add(r);
+                lastWindow.add(r);
             }
         }
-
-        return window;
-    }
-
-    public void advanceWindow() {
-        startLastWindow += RECALCULATE_INTERVAL;
         numWindows++;
+
+        return lastWindow;
     }
 
     @Override
     public void clear() {
         super.clear();
+        lastWindow = null;
+        numWindows = 0;
     }
 
     public void recordMeans(Scalar means) {
@@ -86,5 +86,9 @@ public class ReadingList extends ArrayList<Reading> {
 
     public Reading last() {
         return isEmpty() ? null : get(size() - 1);
+    }
+
+    public ReadingWindow getLastWindow() {
+        return lastWindow;
     }
 }
