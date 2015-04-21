@@ -26,6 +26,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 
+import java.util.Date;
 import java.util.Random;
 
 
@@ -152,10 +153,19 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
 
     }
 
+    Long lastSample = new Date().getTime();
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame = inputFrame.rgba();
         Scalar means = Core.mean(currentFrame);
+
+        // Limit to 10hz
+        long now = new Date().getTime();
+        if (now - lastSample < 62) {
+            return firstFrame;
+        } else {
+            lastSample = now;
+        }
 
         if (recording) {
             rawReadings.recordMeans(means);

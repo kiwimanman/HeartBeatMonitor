@@ -127,7 +127,7 @@ public class ReadingWindow extends ArrayList<Reading> {
             avg += r.value();
         }
         avg /= size();
-        Log.d(TAG, "Avg: " + avg);
+        // Log.d(TAG, "Avg: " + avg);
 
         for (int i = 0; i < size(); i++) {
             Reading r = get(i);
@@ -152,15 +152,26 @@ public class ReadingWindow extends ArrayList<Reading> {
         }
     }
 
-    public void derive() {
+    public void derive(int windowSize) {
         // De-mean
         derived = new Double[size()];
-        for (int i = 0; i < size() - 1; i++) {
-            Reading next = get(i + 1);
+        for (int i = 0; i < derived.length; i++) {
+            derived[i] = 0.0;
+        }
+
+        for (int i = 0; i < size() - windowSize; i++) {
+
             // Log.d(TAG, "Next: " + next);
             Reading prev = get(i);
+            derived[i] = 0.0;
             // Log.d(TAG, "Prev: " + prev);
-            derived[i] = (next.value() - prev.value()) / (double)(next.timeStamp() - prev.timeStamp());
+            for (int j = 0; j < windowSize; j++) {
+                Reading next = get(i + j + 1);
+                double derivitive = (next.value() - prev.value()) / (double) (next.timeStamp() - prev.timeStamp());
+                //Log.d(TAG, "Derived: " + derivitive);
+                derived[i] += derivitive;
+            }
+            derived[i] = derived[i] / (double)windowSize;
         }
 
         for (int i = 0; i < size() - 1; i++) {
@@ -183,7 +194,11 @@ public class ReadingWindow extends ArrayList<Reading> {
                 window.add(get(i + j).value());
             }
             Collections.sort(window);
-            median[i] = window.get(windowSize / 2);
+            if (median.length % 2 == 0)
+                median[i] = (window.get(windowSize / 2) + window.get(windowSize / 2 + 1)) / 2;
+            else
+                median[i] = window.get(windowSize / 2);
+            //Log.d(TAG, "Median: " + median[i]);
             window.clear();
         }
 
@@ -203,6 +218,7 @@ public class ReadingWindow extends ArrayList<Reading> {
                 positive = true;
             } else if (red < 0 && positive) {
                 count++;
+                positive = false;
             }
         }
 
@@ -225,14 +241,16 @@ public class ReadingWindow extends ArrayList<Reading> {
         //Log.d(TAG, "Starting BPM Calculations");
 
         //Log.d(TAG, "Demean");
-        medianFilter(4);
+        // medianFilter(4);
         demean();
-        //threshold(0.2);
+        //
         //Log.d(TAG, "Bandpass");
         bandPass(); // 0.8 to 2.5 hz
+        medianFilter(3);
+        //threshold(0.2);
         //Log.d(TAG, "Derive");
-        medianFilter(4);
-        derive();
+
+        derive(2);
         int beats = zeroCrossings();
         //Log.d(TAG, "Beats: " + beats);
         double minutes = periodSeconds() / 60.0;
