@@ -5,12 +5,12 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="record">Record</string>
-    <string name="heartRateDisplay">Heart Rate: ??? bpm</string>
+    <string name="heartRateDisplay">Hold your finger still over the front camera and use a backlight to illuminate it. Be careful not to move and press record.</string>
     <string name="raw">Raw</string>
     <string name="derived">Windows after differentiation</string>
     <string name="filtered">Windows after bandpass filter.</string>
     <string name="bmp">Beats per minute</string>
-    <string name="thresholded">Windows after filter, demean, and threshold</string>
+    <string name="thresholded">Windows after median filter.</string>
     <string name="off">Off</string>
 
 </resources>
