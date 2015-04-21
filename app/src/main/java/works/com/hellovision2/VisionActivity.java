@@ -149,9 +149,14 @@ public class VisionActivity extends ActionBarActivity implements CameraBridgeVie
             rawReadings.recordMeans(means);
 
             if (rawReadings.newWindowAvailable()) {
+                Log.d(TAG, "Building window");
                 BPM bpm = rawReadings.processSignal();
                 bpmSeries.addLast(bpm.timeStamp(), bpm.bpm());
+                Log.d(TAG, "Recorded BMP window");
                 rawReadings.advanceWindow();
+                Log.d(TAG, "Advancing window");
+            } else {
+                Log.d(TAG, "Waiting for window");
             }
 
             Reading lastReading = rawReadings.last();
